@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>V-League Party Game — Shiro (Fullscreen v2)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <style>
+    :root{
+      --bg1:#0b1222; --bg2:#020617;
+      --text:#e5e7eb; --muted:#94a3b8;
+      --line:rgba(148,163,184,.22);
+      --accent:#2563eb;
+      --good:#16a34a;
+      --bad:#dc2626;
+      --warn:#f59e0b;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 800px at 20% 10%, rgba(37,99,235,.25), transparent 60%),
+                  radial-gradient(1200px 800px at 80% 20%, rgba(245,158,11,.16), transparent 55%),
+                  linear-gradient(135deg,var(--bg1),var(--bg2));
+      color:var(--text);
+      overflow:hidden;
+    }
+    .wrap{
+      height:100%;
+      width:100%;
+      display:flex;
+      justify-content:center;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    .app{
+      width:min(1100px, 100%);
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      padding:14px;
+      gap:10px;
+    }
+
+    /* TOPBAR */
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background: rgba(2,6,23,.45);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:10px 12px;
+      backdrop-filter: blur(10px);
+      flex: 0 0 auto;
+    }
+    .brand{
+      display:flex; flex-direction:column; gap:2px;
+      min-width: 220px;
+    }
+    .brand .title{font-weight:900; letter-spacing:.3px; font-size:16px}
+    .brand .sub{font-size:12px; color:var(--muted)}
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:flex-end;
+      gap:8px;
+    }
+    .ctrl{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      background: rgba(148,163,184,.10);
+      border:1px solid rgba(148,163,184,.18);
+      font-size:12px;
+      color:var(--text);
+      white-space:nowrap;
+    }
+    select, input[type="number"], textarea{
+      background: rgba(2,6,23,.65);
+      color: var(--text);
+      border:1px solid rgba(148,163,184,.25);
+      border-radius:10px;
+      padding:6px 8px;
+      font-size:12px;
+      outline:none;
+    }
+    textarea{width:100%; min-height:110px; resize:vertical; padding:10px; font-size:12px; border-radius:14px;}
+    input[type="checkbox"]{transform: translateY(1px);}
+
+    /* SCORE STRIP (always visible) */
+    .scoreStrip{
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(2,6,23,.35);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:10px 10px 8px 10px;
+      backdrop-filter: blur(10px);
+      flex: 0 0 auto;
+    }
+    .scoreStripHead{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin-bottom:8px;
+    }
+    .dbpill{
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.22);
+      background: rgba(148,163,184,.10);
+      color: var(--text);
+      white-space:nowrap;
+    }
+    .scorebar{
+      display:flex;
+      gap:10px;
+      overflow:auto;
+      padding-bottom:2px;
+    }
+    .scorecard{
+      flex: 0 0 auto;
+      min-width: 170px;
+      background: rgba(148,163,184,.08);
+      border:1px solid rgba(148,163,184,.18);
+      border-radius:16px;
+      padding:10px 12px;
+    }
+    .scorecard .name{font-weight:900; font-size:14px}
+    .scorecard .pts{font-size:24px; font-weight:1000; margin-top:2px}
+    .scorecard.active{outline:2px solid rgba(37,99,235,.85)}
+    .scorecard .meta{font-size:12px; color:var(--muted)}
+
+    /* LAYOUT */
+    .main{
+      flex:1;
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:10px;
+      min-height:0;
+    }
+    @media (max-width: 900px){
+      .main{grid-template-columns: 1fr}
+    }
+    .panel{
+      background: rgba(2,6,23,.45);
+      border:1px solid var(--line);
+      border-radius:22px;
+      padding:14px;
+      min-height:0;
+      overflow:auto;
+      backdrop-filter: blur(10px);
+    }
+    .panel h2{margin:0 0 10px 0; font-size:16px}
+    .panel h3{margin:0 0 8px 0; font-size:14px; color:var(--muted); font-weight:800}
+
+    /* Setup */
+    .row{display:flex; gap:10px}
+    .row > *{flex:1}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      background: rgba(148,163,184,.10);
+      border:1px solid rgba(148,163,184,.18);
+      font-size:13px;
+      margin:6px 6px 0 0;
+    }
+    .pill button{
+      border:none; background:transparent; color:var(--muted);
+      cursor:pointer; font-size:14px;
+    }
+    .btn{
+      width:100%;
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid rgba(148,163,184,.18);
+      background: rgba(37,99,235,.92);
+      color:white;
+      font-weight:900;
+      font-size:16px;
+      cursor:pointer;
+    }
+    .btn:disabled{opacity:.6; cursor:not-allowed}
+    .btn.secondary{background: rgba(148,163,184,.12); color:var(--text)}
+    .btn.ghost{background: transparent; border:1px dashed rgba(148,163,184,.28); color:var(--muted)}
+    .btn.good{background: rgba(22,163,74,.95)}
+    .btn.bad{background: rgba(220,38,38,.95)}
+    .btn.warn{background: rgba(245,158,11,.95); color:#0b1222}
+    .small{font-size:12px; color:var(--muted)}
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size:12px;
+      padding:2px 6px;
+      border-radius:8px;
+      border:1px solid rgba(148,163,184,.22);
+      background: rgba(2,6,23,.35);
+      color: var(--muted);
+    }
+
+    /* Game */
+    .stage{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-height:0;
+    }
+    .qbox{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-height:0;
+      padding:14px;
+      border-radius:22px;
+      background: linear-gradient(180deg, rgba(148,163,184,.10), rgba(148,163,184,.05));
+      border:1px solid rgba(148,163,184,.18);
+    }
+    .qline{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .turn{
+      font-size:14px;
+      color:var(--muted);
+      font-weight:900;
+    }
+    .timer{
+      font-weight:1000;
+      font-size:14px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.22);
+      background: rgba(2,6,23,.35);
+      min-width: 72px;
+      text-align:center;
+    }
+    .question{
+      font-size:26px;
+      font-weight:1000;
+      letter-spacing:.2px;
+      line-height:1.15;
+    }
+    .hint{
+      font-size:13px;
+      color: var(--muted);
+      line-height:1.25;
+    }
+    .answers{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-top:6px;
+    }
+    @media (max-width: 520px){
+      .question{font-size:22px}
+      .answers{grid-template-columns: 1fr}
+    }
+    .choice{
+      padding:12px 12px;
+      border-radius:16px;
+      border:1px solid rgba(148,163,184,.18);
+      background: rgba(2,6,23,.55);
+      color: var(--text);
+      font-weight:1000;
+      font-size:16px;
+      cursor:pointer;
+      text-align:left;
+      min-height:54px;
+    }
+    .choice:disabled{cursor:not-allowed; opacity:.9}
+    .choice.correct{outline:2px solid rgba(22,163,74,.95); background: rgba(22,163,74,.20)}
+    .choice.wrong{outline:2px solid rgba(220,38,38,.95); background: rgba(220,38,38,.18)}
+    .explain{
+      padding:12px 12px;
+      border-radius:18px;
+      border:1px solid rgba(148,163,184,.18);
+      background: rgba(2,6,23,.45);
+      font-size:14px;
+      line-height:1.25;
+    }
+    .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+    .chip{
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.18);
+      background: rgba(148,163,184,.10);
+      font-size:12px;
+      color: var(--text);
+    }
+
+    /* Right panel sections */
+    .section{
+      background: rgba(148,163,184,.08);
+      border:1px solid rgba(148,163,184,.16);
+      border-radius:18px;
+      padding:12px;
+      margin-bottom:10px;
+    }
+    .section .title{font-weight:1000; font-size:13px; margin-bottom:8px}
+    .list{max-height: 260px; overflow:auto}
+    .list .item{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px;
+      padding:8px 10px;
+      border-radius:14px;
+      background: rgba(2,6,23,.35);
+      border:1px solid rgba(148,163,184,.12);
+      margin-bottom:8px;
+      font-size:13px;
+    }
+  
+    /* Start button dock (always clickable in setup) */
+    .startDock{
+      position: sticky;
+      bottom: 0;
+      z-index: 5;
+      margin: 12px -14px -14px -14px; /* stretch to panel edges */
+      padding: 12px 14px 14px 14px;
+      border-top: 1px solid rgba(148,163,184,.18);
+      background: rgba(2,6,23,.78);
+      backdrop-filter: blur(10px);
+    }
+    .startDock .row{
+      align-items:center;
+    }
+
+  
+    /* Visual upgrade (v3 show) */
+    .progressWrap{
+      margin-top:8px;
+      height:10px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.20);
+      background: rgba(2,6,23,.35);
+      overflow:hidden;
+    }
+    .progressBar{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, rgba(37,99,235,.95), rgba(245,158,11,.85));
+      border-radius:999px;
+      transition: width .35s ease;
+    }
+    .qbox{
+      position: relative;
+      overflow:hidden;
+    }
+    .qbox::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background: radial-gradient(800px 400px at 30% 20%, rgba(37,99,235,.18), transparent 60%),
+                  radial-gradient(800px 400px at 80% 40%, rgba(245,158,11,.12), transparent 60%);
+      pointer-events:none;
+    }
+    .qbox > *{ position:relative; z-index:1; }
+    .question{
+      animation: popIn .25s ease both;
+    }
+    @keyframes popIn{ from{ transform: translateY(6px); opacity:.0 } to{ transform: translateY(0); opacity:1 } }
+    .shake{
+      animation: shake .22s ease both;
+    }
+    @keyframes shake{
+      0%{ transform: translateX(0) }
+      25%{ transform: translateX(-6px) }
+      50%{ transform: translateX(6px) }
+      75%{ transform: translateX(-4px) }
+      100%{ transform: translateX(0) }
+    }
+    .toast{
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%);
+      background: rgba(2,6,23,.85);
+      border:1px solid rgba(148,163,184,.22);
+      padding:10px 14px;
+      border-radius: 999px;
+      font-weight: 900;
+      z-index: 999;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .2s ease, transform .2s ease;
+      backdrop-filter: blur(10px);
+      max-width:min(92vw,720px);
+      text-align:center;
+    }
+    .toast.show{ opacity:1; transform: translateX(-50%) translateY(-4px); }
+    .confetti{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      overflow:hidden;
+    }
+    .confetti i{
+      position:absolute;
+      width:10px;height:14px;
+      border-radius:3px;
+      opacity:.9;
+      top:-20px;
+      animation: fall 900ms linear forwards;
+    }
+    @keyframes fall{
+      to{ transform: translateY(520px) rotate(240deg); opacity:0; }
+    }
+    .scorecard{
+      transition: transform .15s ease, outline-color .15s ease;
+    }
+    .scorecard.active{ transform: translateY(-2px); }
+    .ctrl button{
+      border:none; background:transparent; color:var(--text); cursor:pointer;
+    }
+
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="app">
+
+    <div class="topbar">
+      <div class="brand">
+        <div class="title">⚽ V‑League Party Game — Shiro</div>
+        <div class="sub">Fullscreen • đa mode • tối ưu quay TikTok/Shorts</div>
+      </div>
+
+      <div class="controls">
+        <div class="ctrl">
+          Mode:
+          <select id="modeSelect">
+            <option value="mix">Mix (đủ thể loại)</option>
+            <option value="mcq">MCQ (4 đáp án)</option>
+            <option value="compare">So sánh (4 người)</option>
+            <option value="stats">Stats Quiz (số liệu)</option>
+            <option value="odd">Odd One Out</option>
+            <option value="tf">Đúng / Sai</option>
+          </select>
+        </div>
+
+        <div class="ctrl">
+          Câu / ván:
+          <input id="roundsInput" type="number" min="5" max="50" step="1" value="10"/>
+        </div>
+
+        <div class="ctrl">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input id="timerToggle" type="checkbox" checked/>
+            Timer
+          </label>
+          <select id="timerSec">
+            <option value="6">6s</option>
+            <option value="8" selected>8s</option>
+            <option value="10">10s</option>
+            <option value="12">12s</option>
+          </select>
+        </div>
+
+        <div class="ctrl">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input id="soundToggle" type="checkbox" checked/>
+            Sound
+          </label>
+        </div>
+
+        <button class="btn secondary" id="btnReset" style="width:auto;padding:10px 12px;border-radius:14px">Reset</button>
+      </div>
+    </div>
+
+    <!-- ALWAYS VISIBLE SCORE STRIP -->
+    <div class="scoreStrip">
+      <div class="scoreStripHead">
+        <div class="dbpill" id="dbStatus">DB: …</div>
+        <div class="dbpill" id="turnMini">Lượt: …</div>
+      </div>
+      <div class="scorebar" id="scorebar"></div>
+      <div class="progressWrap"><div class="progressBar" id="progressBar"></div></div>
+    </div>
+
+    <div class="main">
+      <!-- LEFT -->
+      <div class="panel">
+        <div id="setupView">
+          <h2>1) Nạp database</h2>
+          <div class="small" style="margin-bottom:8px">
+            Mặc định game tự đọc từ file <span class="kbd">vleague_db_master.js</span>.
+            Nếu bạn muốn test DB khác, paste JSON vào ô dưới và bấm “Áp dụng”.
+          </div>
+          <textarea id="dbPaste" placeholder='(Tuỳ chọn) Paste JSON dạng [{...},{...}] hoặc object có ALL_PLAYERS'></textarea>
+          <div class="row" style="margin-top:8px">
+            <button class="btn secondary" id="btnApplyDb">Áp dụng DB (tuỳ chọn)</button>
+            <button class="btn ghost" id="btnClearDb" style="max-width:180px">Xoá DB pasted</button>
+          </div>
+
+          <h2 style="margin-top:16px">2) Thêm người chơi</h2>
+          <div class="row">
+            <input id="playerInput" placeholder="Tên người chơi" style="padding:12px;border-radius:14px;border:1px solid rgba(148,163,184,.22);background:rgba(2,6,23,.45);color:var(--text)"/>
+            <button class="btn secondary" id="btnAdd" style="max-width:140px">Thêm</button>
+          </div>
+          <div class="small" style="margin-top:8px">Phím nhanh: <span class="kbd">Enter</span> để thêm. 2–4 người là đẹp nhất khi quay clip.</div>
+          <div id="playerPills" style="margin-top:8px"></div>
+
+          <div class="startDock">
+            <button class="btn" id="btnStart">Bắt đầu game</button>
+            <div class="small" style="margin-top:6px">Nếu nút bị che, hãy cuộn nhẹ — nút sẽ luôn “dính” ở đáy khung này.</div>
+          </div>
+        </div>
+
+        <div id="gameView" style="display:none;height:100%">
+          <div class="stage">
+            <div class="qbox">
+              <div class="confetti" id="confetti"></div>
+              <div class="qline">
+                <div class="turn" id="turnLine">🎤 Lượt: …</div>
+                <div class="timer" id="timerPill">⏱ 8</div>
+              </div>
+
+              <div class="question" id="question">…</div>
+              <div class="hint" id="hint">…</div>
+
+              <div class="answers" id="answers"></div>
+
+              <div class="explain" id="explain" style="display:none"></div>
+              <div class="chips" id="chips"></div>
+            </div>
+
+            <div style="display:flex;gap:10px">
+              <button class="btn secondary" id="btnSkip">Bỏ qua</button>
+              <button class="btn warn" id="btnNext" disabled>Câu tiếp</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="panel">
+        <div class="section">
+          <div class="title">Luật nhanh (để quay clip)</div>
+          <div class="small">
+            • Đúng +1 điểm. Sai 0 điểm.<br/>
+            • Hết giờ = sai (tự lật đáp án).<br/>
+            • Cuối ván hiện “Top 3” để chốt clip.
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="title">Mode đang có</div>
+          <div class="list">
+            <div class="item"><span>MCQ: Cầu thủ đá CLB nào?</span><span class="kbd">mcq_club</span></div>
+            <div class="item"><span>MCQ: Thuộc mùa giải nào?</span><span class="kbd">mcq_season</span></div>
+            <div class="item"><span>MCQ: Vị trí nào?</span><span class="kbd">mcq_position</span></div>
+            <div class="item"><span>So sánh: Ai lớn tuổi nhất?</span><span class="kbd">cmp_age</span></div>
+            <div class="item"><span>So sánh: Ai nhiều bàn nhất?</span><span class="kbd">cmp_goals</span></div>
+            <div class="item"><span>So sánh: Ai nhiều thẻ vàng nhất?</span><span class="kbd">cmp_yellow</span></div>
+            <div class="item"><span>Đúng/Sai: Mùa–CLB có thật?</span><span class="kbd">tf_season_club</span></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="title">Mẹo quay nhanh</div>
+          <div class="small">
+            • Để điểm dễ theo dõi: score strip luôn nằm trên cùng (không mất).<br/>
+            • Nên đặt “Câu / ván” = 10 hoặc 12 để vừa clip.<br/>
+            • Nếu muốn căng: timer 6s + mode Mix.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<div class="toast" id="toast">...</div>
+
+<script src="vleague_db_master_players_only.js"></script>
+
+<script>
+/* ========= Utilities ========= */
+const $ = (id)=>document.getElementById(id);
+const esc = (s)=>String(s??"").replace(/[&<>"']/g, (m)=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+const shuffle = (arr)=>arr.slice().sort(()=>Math.random()-0.5);
+const uniq = (arr)=>Array.from(new Set(arr));
+
+// UI effects
+function showToast(msg){
+  const t = $("toast");
+  if(!t) return;
+  t.innerHTML = msg;
+  t.classList.add("show");
+  clearTimeout(t.__to);
+  t.__to = setTimeout(()=>t.classList.remove("show"), 900);
+}
+function doConfetti(){
+  const box = $("confetti");
+  if(!box) return;
+  box.innerHTML = "";
+  const n = 20;
+  for(let i=0;i<n;i++){
+    const el = document.createElement("i");
+    el.style.left = (Math.random()*100).toFixed(2)+"%";
+    el.style.background = `hsl(${Math.floor(Math.random()*360)}, 90%, 60%)`;
+    el.style.transform = `translateY(0) rotate(${Math.random()*180}deg)`;
+    el.style.animationDelay = (Math.random()*120).toFixed(0)+"ms";
+    box.appendChild(el);
+  }
+}
+function beep(type){
+  if(!$("soundToggle")?.checked) return;
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = type==="good"?"triangle":"sawtooth";
+    o.frequency.value = type==="good"? 740 : 180;
+    g.gain.value = 0.08;
+    o.connect(g); g.connect(ctx.destination);
+    o.start();
+    setTimeout(()=>{ o.stop(); ctx.close(); }, type==="good"?140:180);
+  }catch(e){}
+}
+
+function safeStat(p,key){ return (p && p.stats && Number.isFinite(+p.stats[key])) ? +p.stats[key] : 0; }
+
+
+/* ========= Linked profiles across seasons =========
+   DB rows are season-specific. We build "profiles" so one player can have multiple seasons/clubs
+   and totals (goals/cards) can be aggregated across seasons.
+*/
+const PROFILE = {
+  byId: new Map(),   // id -> { id, name, birthdate, entries:[row...], seasons:Set, clubs:Set, positions:Set, numbers:Set }
+  all: [],           // array of profiles
+};
+function normName(s){
+  return String(s||"").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-z0-9]+/g," ").trim();
+}
+function makeId(row){
+  const n = normName(row.name);
+  const b = (row.birthdate || row.dob || "").toString().trim();
+  return b ? (n + "|" + b) : n;
+}
+function buildProfilesFromPool(){
+  PROFILE.byId.clear();
+  for(const r of POOL){
+    const id = makeId(r);
+    if(!PROFILE.byId.has(id)){
+      PROFILE.byId.set(id,{
+        id,
+        name: r.name,
+        birthdate: r.birthdate || r.dob || null,
+        entries: [],
+        seasons: new Set(),
+        clubs: new Set(),
+        positions: new Set(),
+        numbers: new Set(),
+      });
+    }
+    const p = PROFILE.byId.get(id);
+    p.entries.push(r);
+    if(r.season) p.seasons.add(r.season);
+    if(r.club) p.clubs.add(r.club);
+    if(r.position) p.positions.add(r.position);
+    if(r.number!==undefined && r.number!==null) p.numbers.add(r.number);
+  }
+  PROFILE.all = Array.from(PROFILE.byId.values());
+}
+function pickRandomProfile(){
+  return PROFILE.all[Math.floor(Math.random()*PROFILE.all.length)];
+}
+function sumProfileStat(profile, key){
+  return profile.entries.reduce((acc,e)=>acc + safeStat(e,key), 0);
+}
+function pickRandomEntry(profile){
+  return profile.entries[Math.floor(Math.random()*profile.entries.length)];
+}
+function setToArray(s){ return Array.from(s); }
+
+/* ========= Data pools (mutable) ========= */
+let POOL = [];
+let CLUBS = [];
+let SEASONS = [];
+const POSITIONS = ["GK","DEF","MID","FWD"];
+
+function setPoolFromAllPlayers(arr){
+  POOL = Array.isArray(arr) ? arr.filter(p=>p && p.name && p.club && p.season) : [];
+  CLUBS = (window.VLEAGUE_META && VLEAGUE_META.clubs) ? VLEAGUE_META.clubs : uniq(POOL.map(p=>p.club));
+  SEASONS = (window.VLEAGUE_META && VLEAGUE_META.seasons) ? VLEAGUE_META.seasons : uniq(POOL.map(p=>p.season));
+  buildProfilesFromPool();
+  updateDbStatus();
+}
+function updateDbStatus(){
+  const rows = POOL.length;
+  const clubs = CLUBS.length;
+  const seasons = SEASONS.length;
+  const asof = (window.VLEAGUE_META && VLEAGUE_META.asof_date) ? VLEAGUE_META.asof_date : "2025-12-29";
+  $("dbStatus").textContent = `DB: ${rows} dòng • ${PROFILE.all.length} cầu thủ • ${clubs} CLB • ${seasons} mùa • age as-of ${asof}`;
+}
+
+/* ========= Game state ========= */
+const state = {
+  players: [],
+  scores: {},
+  turnIdx: 0,
+  qIndex: 0,
+  totalRounds: 10,
+  currentQ: null,
+  lock: false,
+  timer: { enabled:true, sec:8, t:null, left:8 },
+};
+
+function setTurnMini(){
+  const name = state.players[state.turnIdx] || "—";
+  $("turnMini").textContent = `Lượt: ${name} • Câu ${Math.min(state.qIndex+1, state.totalRounds)}/${state.totalRounds}`;
+}
+
+function resetAll(){
+  state.players = [];
+  state.scores = {};
+  state.turnIdx = 0;
+  state.qIndex = 0;
+  state.totalRounds = +$("roundsInput").value || 10;
+  state.currentQ = null;
+  state.lock = false;
+  stopTimer();
+  $("setupView").style.display = "";
+  $("gameView").style.display = "none";
+  $("playerPills").innerHTML = "";
+  $("playerInput").value = "";
+  renderScorebar();
+  clearQA();
+  setTurnMini();
+}
+
+function addPlayer(){
+  const name = $("playerInput").value.trim();
+  if(!name) return;
+  if(state.players.includes(name)) { $("playerInput").value=""; return; }
+  state.players.push(name);
+  state.scores[name]=0;
+  $("playerInput").value="";
+  renderPlayerPills();
+  renderScorebar();
+  setTurnMini();
+}
+function removePlayer(name){
+  state.players = state.players.filter(p=>p!==name);
+  delete state.scores[name];
+  renderPlayerPills();
+  renderScorebar();
+  setTurnMini();
+}
+
+function renderPlayerPills(){
+  $("playerPills").innerHTML = state.players.map(p=>
+    `<span class="pill">${esc(p)} <button title="Xóa" onclick="window.__rm('${esc(p)}')">×</button></span>`
+  ).join("");
+}
+window.__rm = (n)=>removePlayer(n);
+
+function renderScorebar(){
+  const sb = $("scorebar");
+  sb.innerHTML = state.players.map((p,i)=>{
+    const cls = (i===state.turnIdx) ? "scorecard active" : "scorecard";
+    return `<div class="${cls}">
+      <div class="name">${esc(p)}</div>
+      <div class="pts">${state.scores[p] ?? 0}</div>
+      <div class="meta">Lượt ${i+1}/${Math.max(1,state.players.length)}</div>
+    </div>`;
+  }).join("");
+}
+
+function clearQA(){
+  $("question").textContent="…";
+  $("hint").textContent="…";
+  $("answers").innerHTML="";
+  $("explain").style.display="none";
+  $("explain").innerHTML="";
+  $("chips").innerHTML="";
+  $("btnNext").disabled = true;
+}
+
+/* ========= Question generators ========= */
+function pickRandomPlayer(){
+  return POOL[Math.floor(Math.random()*POOL.length)];
+}
+function randomClubs(exclude,n){
+  return shuffle(CLUBS.filter(c=>c!==exclude)).slice(0,n);
+}
+function randomSeasons(exclude,n){
+  return shuffle(SEASONS.filter(s=>s!==exclude)).slice(0,n);
+}
+function randomPositions(exclude,n){
+  return shuffle(POSITIONS.filter(x=>x!==exclude)).slice(0,n);
+}
+
+function makeQuestion(){
+  const group = $("modeSelect").value; // mix/mcq/compare/stats/odd/tf
+
+  // Helper: pick 4 profiles with non-zero sum for a stat
+  function pickFourNonZero(statKey, attempts=30){
+    for(let k=0;k<attempts;k++){
+      const four = shuffle(PROFILE.all).slice(0,4);
+      const vals = four.map(p=>sumProfileStat(p, statKey));
+      const mx = Math.max(...vals);
+      if(mx > 0) return {four, vals};
+    }
+    return null;
+  }
+
+  let types = [];
+  if(group==="mcq"){
+    types = ["mcq_club_season","mcq_season","mcq_position","mcq_club_career","mcq_number_season","mcq_height_band","mcq_age_band"];
+  }else if(group==="compare"){
+    types = ["cmp_age","cmp_goals_total","cmp_yellow_total","cmp_red_total","cmp_club_changes"];
+  }else if(group==="stats"){
+    types = ["mcq_goals_total_band","mcq_cards_total_band","mcq_height_band","mcq_age_band","cmp_goals_total","cmp_yellow_total","cmp_red_total"];
+  }else if(group==="odd"){
+    types = ["odd_club_season","odd_position"];
+  }else if(group==="tf"){
+    types = ["tf_season_club","tf_number_season"];
+  }else{
+    types = ["mcq_club_season","mcq_season","mcq_position","mcq_club_career","mcq_number_season","mcq_height_band","mcq_age_band",
+             "cmp_age","cmp_goals_total","cmp_yellow_total","cmp_red_total","cmp_club_changes",
+             "odd_club_season","odd_position","tf_season_club","tf_number_season"];
+  }
+
+  const type = types[Math.floor(Math.random()*types.length)];
+  const playerName = state.players[state.turnIdx];
+  const asof = (window.VLEAGUE_META && VLEAGUE_META.asof_date) ? esc(VLEAGUE_META.asof_date) : "2025-12-29";
+
+  // ---------- MCQ helpers ----------
+  function heightBand(h){
+    if(!Number.isFinite(+h)) return null;
+    h = +h;
+    if(h < 170) return "<170";
+    if(h < 176) return "170–175";
+    if(h < 181) return "176–180";
+    if(h < 186) return "181–185";
+    return "≥186";
+  }
+  function ageBand(a){
+    if(!Number.isFinite(+a)) return null;
+    a = +a;
+    if(a <= 20) return "≤20";
+    if(a <= 23) return "21–23";
+    if(a <= 26) return "24–26";
+    if(a <= 29) return "27–29";
+    return "≥30";
+  }
+  function goalsBand(g){
+    if(g <= 0) return "0";
+    if(g <= 2) return "1–2";
+    if(g <= 5) return "3–5";
+    if(g <= 10) return "6–10";
+    return "≥11";
+  }
+  function cardsBand(c){
+    if(c <= 0) return "0";
+    if(c <= 2) return "1–2";
+    if(c <= 5) return "3–5";
+    if(c <= 10) return "6–10";
+    return "≥11";
+  }
+
+  // --- MCQ: club in a specific season (row)
+  if(type==="mcq_club_season"){
+    const p = pickRandomProfile();
+    const e = pickRandomEntry(p);
+    const correct = e.club;
+    const options = shuffle([correct, ...randomClubs(correct,3)]);
+    return {
+      type, playerName,
+      prompt: `Ở mùa <b>${esc(e.season)}</b>, <b>${esc(e.name)}</b> thuộc CLB nào?`,
+      hint: `Gợi ý: Vị trí <b>${esc(e.position||"?")}</b> • Số áo <b>${e.number ?? "?"}</b>`,
+      options, correct,
+      explain: `Đáp án đúng: <b>${esc(correct)}</b><br/>Theo DB: <b>${esc(e.name)}</b> — mùa <b>${esc(e.season)}</b> — CLB <b>${esc(e.club)}</b>.`,
+      chips: [`MCQ: CLB theo mùa`, `Mùa ${esc(e.season)}`]
+    };
+  }
+
+  // --- MCQ: season for a specific club row
+  if(type==="mcq_season"){
+    const p = pickRandomProfile();
+    const e = pickRandomEntry(p);
+    const correct = e.season;
+    const options = shuffle([correct, ...randomSeasons(correct,3)]);
+    return {
+      type, playerName,
+      prompt: `Mùa nào <b>${esc(e.name)}</b> đá cho <b>${esc(e.club)}</b>?`,
+      hint: `Gợi ý: Vị trí <b>${esc(e.position||"?")}</b> • Số áo <b>${e.number ?? "?"}</b>`,
+      options, correct,
+      explain: `Đáp án đúng: <b>${esc(correct)}</b><br/>Theo DB: <b>${esc(e.name)}</b> đá cho <b>${esc(e.club)}</b> ở mùa <b>${esc(e.season)}</b>.`,
+      chips: [`MCQ: mùa`, esc(e.club)]
+    };
+  }
+
+  // --- MCQ: position
+  if(type==="mcq_position"){
+    const p = pickRandomProfile();
+    const e = pickRandomEntry(p);
+    const correct = e.position || "MID";
+    const options = shuffle([correct, ...randomPositions(correct,3)]);
+    return {
+      type, playerName,
+      prompt: `Ở mùa <b>${esc(e.season)}</b>, <b>${esc(e.name)}</b> đá vị trí nào?`,
+      hint: `Gợi ý: CLB <b>${esc(e.club)}</b> • Số áo <b>${e.number ?? "?"}</b>`,
+      options, correct,
+      explain: `Đáp án đúng: <b>${esc(correct)}</b><br/>Theo DB: <b>${esc(e.name)}</b> — <b>${esc(e.club)}</b> — mùa <b>${esc(e.season)}</b>.`,
+      chips: [`MCQ: vị trí`, `Mùa ${esc(e.season)}`]
+    };
+  }
+
+  // --- MCQ: club across all seasons (profile)
+  if(type==="mcq_club_career"){
+    let p = pickRandomProfile();
+    for(let i=0;i<12;i++){
+      if(p && p.clubs && p.clubs.size>=2) break;
+      p = pickRandomProfile();
+    }
+    const clubs = setToArray(p.clubs);
+    const correct = clubs[Math.floor(Math.random()*clubs.length)];
+    const options = shuffle([correct, ...randomClubs(correct,3)]);
+    return {
+      type, playerName,
+      prompt: `Trong dữ liệu hiện có, <b>${esc(p.name)}</b> từng đá cho CLB nào?`,
+      hint: `Gợi ý: Có <b>${p.seasons.size}</b> mùa trong DB.`,
+      options, correct,
+      explain: `Đáp án: <b>${esc(correct)}</b><br/>CLB của <b>${esc(p.name)}</b> trong DB: <b>${clubs.map(esc).join(" • ")}</b>.`,
+      chips: [`MCQ: CLB (nhiều mùa)`]
+    };
+  }
+
+  // --- MCQ: jersey number in a season
+  if(type==="mcq_number_season"){
+    const p = pickRandomProfile();
+    const e = pickRandomEntry(p);
+    const correct = (e.number ?? null);
+    if(correct === null || correct === undefined) return makeQuestion();
+    const nums = uniq(POOL.map(x=>x.number).filter(n=>Number.isFinite(+n))).map(n=>+n);
+    const distract = shuffle(nums.filter(n=>n!==correct)).slice(0,3);
+    const options = shuffle([correct, ...distract]).map(String);
+    return {
+      type, playerName,
+      prompt: `Ở mùa <b>${esc(e.season)}</b>, <b>${esc(e.name)}</b> mang số áo bao nhiêu?`,
+      hint: `Gợi ý: CLB <b>${esc(e.club)}</b> • Vị trí <b>${esc(e.position||"?")}</b>`,
+      options, correct: String(correct),
+      explain: `Đáp án đúng: <b>${correct}</b><br/>Theo DB: <b>${esc(e.name)}</b> — <b>${esc(e.club)}</b> — mùa <b>${esc(e.season)}</b> — số <b>${correct}</b>.`,
+      chips: [`MCQ: số áo`, `Mùa ${esc(e.season)}`]
+    };
+  }
+
+  // --- Stats MCQ: height band
+  if(type==="mcq_height_band"){
+    const e = pickRandomPlayer();
+    const band = heightBand(e.height_cm);
+    if(!band) return makeQuestion();
+    const allBands = ["<170","170–175","176–180","181–185","≥186"];
+    const options = shuffle([band, ...shuffle(allBands.filter(b=>b!==band)).slice(0,3)]);
+    return {
+      type, playerName,
+      prompt: `<b>${esc(e.name)}</b> cao khoảng mức nào?`,
+      hint: `Gợi ý: CLB <b>${esc(e.club)}</b> • mùa <b>${esc(e.season)}</b>.`,
+      options, correct: band,
+      explain: `Đáp án: <b>${band}</b><br/>Chiều cao trong DB: <b>${e.height_cm ?? "?"} cm</b>.`,
+      chips: [`Stats: chiều cao`]
+    };
+  }
+
+  // --- Stats MCQ: age band
+  if(type==="mcq_age_band"){
+    const e = pickRandomPlayer();
+    const band = ageBand(e.age);
+    if(!band) return makeQuestion();
+    const allBands = ["≤20","21–23","24–26","27–29","≥30"];
+    const options = shuffle([band, ...shuffle(allBands.filter(b=>b!==band)).slice(0,3)]);
+    return {
+      type, playerName,
+      prompt: `<b>${esc(e.name)}</b> thuộc nhóm tuổi nào?`,
+      hint: `Gợi ý: age tính theo as-of <b>${asof}</b>.`,
+      options, correct: band,
+      explain: `Đáp án: <b>${band}</b><br/>Tuổi trong DB: <b>${e.age ?? "?"}</b> (as-of ${asof}).`,
+      chips: [`Stats: tuổi`]
+    };
+  }
+
+  // --- Compare: age (max)
+  if(type==="cmp_age"){
+    const four = shuffle(PROFILE.all).slice(0,4);
+    const getAge = (pr)=> pr.entries.reduce((mx,e)=>Math.max(mx, (e.age??0)), 0);
+    const vals = four.map(getAge);
+    const best = four[vals.indexOf(Math.max(...vals))];
+    const options = shuffle(four.map(x=>x.name));
+    return {
+      type, playerName,
+      prompt: `Trong 4 người này, <b>ai lớn tuổi nhất</b>?`,
+      hint: `Gợi ý: dùng tuổi lớn nhất xuất hiện trong DB (as-of ${asof}).`,
+      options,
+      correct: best.name,
+      explain: `Đúng: <b>${esc(best.name)}</b><br/>Tuổi (max): ${four.map((x,i)=>`${esc(x.name)} <b>${vals[i]||"?"}</b>`).join(" · ")}`,
+      chips: [`Compare: tuổi`]
+    };
+  }
+
+  // --- Compare: total goals (skip 0-0-0-0)
+  if(type==="cmp_goals_total"){
+    const picked = pickFourNonZero("goals");
+    if(!picked) return makeQuestion();
+    const {four, vals} = picked;
+    const best = four[vals.indexOf(Math.max(...vals))];
+    const options = shuffle(four.map(x=>x.name));
+    return {
+      type, playerName,
+      prompt: `Trong 4 người này, <b>ai ghi bàn nhiều nhất</b> (tổng các mùa trong DB)?`,
+      hint: `Gợi ý: cộng “goals” của tất cả mùa.`,
+      options,
+      correct: best.name,
+      explain: `Đúng: <b>${esc(best.name)}</b><br/>Tổng bàn: ${four.map((x,i)=>`${esc(x.name)} <b>${vals[i]}</b>`).join(" · ")}`,
+      chips: [`Compare: goals (tổng)`]
+    };
+  }
+
+  // --- Compare: total yellow (skip 0-0-0-0)
+  if(type==="cmp_yellow_total"){
+    const picked = pickFourNonZero("yellow_cards");
+    if(!picked) return makeQuestion();
+    const {four, vals} = picked;
+    const best = four[vals.indexOf(Math.max(...vals))];
+    const options = shuffle(four.map(x=>x.name));
+    return {
+      type, playerName,
+      prompt: `Trong 4 người này, <b>ai nhiều thẻ vàng nhất</b> (tổng các mùa trong DB)?`,
+      hint: `Gợi ý: cộng “yellow_cards” của tất cả mùa.`,
+      options,
+      correct: best.name,
+      explain: `Đúng: <b>${esc(best.name)}</b><br/>Tổng thẻ vàng: ${four.map((x,i)=>`${esc(x.name)} <b>${vals[i]}</b>`).join(" · ")}`,
+      chips: [`Compare: thẻ vàng (tổng)`]
+    };
+  }
+
+  // --- Compare: total red (skip 0-0-0-0)
+  if(type==="cmp_red_total"){
+    const picked = pickFourNonZero("red_cards");
+    if(!picked) return makeQuestion();
+    const {four, vals} = picked;
+    const best = four[vals.indexOf(Math.max(...vals))];
+    const options = shuffle(four.map(x=>x.name));
+    return {
+      type, playerName,
+      prompt: `Trong 4 người này, <b>ai nhiều thẻ đỏ nhất</b> (tổng các mùa trong DB)?`,
+      hint: `Gợi ý: cộng “red_cards” của tất cả mùa.`,
+      options,
+      correct: best.name,
+      explain: `Đúng: <b>${esc(best.name)}</b><br/>Tổng thẻ đỏ: ${four.map((x,i)=>`${esc(x.name)} <b>${vals[i]}</b>`).join(" · ")}`,
+      chips: [`Compare: thẻ đỏ (tổng)`]
+    };
+  }
+
+  // --- Compare: most clubs (variety)
+  if(type==="cmp_club_changes"){
+    const four = shuffle(PROFILE.all).slice(0,4);
+    const vals = four.map(p=>p.clubs.size);
+    const best = four[vals.indexOf(Math.max(...vals))];
+    const options = shuffle(four.map(x=>x.name));
+    return {
+      type, playerName,
+      prompt: `Trong 4 người này, <b>ai đá cho nhiều CLB nhất</b> (trong DB)?`,
+      hint: `Gợi ý: đếm số CLB xuất hiện trong DB.`,
+      options,
+      correct: best.name,
+      explain: `Đúng: <b>${esc(best.name)}</b><br/>Số CLB: ${four.map((x,i)=>`${esc(x.name)} <b>${vals[i]}</b>`).join(" · ")}`,
+      chips: [`Compare: đổi CLB`]
+    };
+  }
+
+  // --- Stats MCQ: total goals band
+  if(type==="mcq_goals_total_band"){
+    const p = pickRandomProfile();
+    const g = sumProfileStat(p,"goals");
+    const band = goalsBand(g);
+    const all = ["0","1–2","3–5","6–10","≥11"];
+    const options = shuffle([band, ...shuffle(all.filter(x=>x!==band)).slice(0,3)]);
+    return {
+      type, playerName,
+      prompt: `Tổng bàn thắng (trong DB) của <b>${esc(p.name)}</b> thuộc mức nào?`,
+      hint: `Gợi ý: cộng goals qua các mùa trong DB.`,
+      options, correct: band,
+      explain: `Đáp án: <b>${band}</b><br/>Tổng goals của <b>${esc(p.name)}</b> (trong DB): <b>${g}</b>.`,
+      chips: [`Stats quiz: tổng bàn`]
+    };
+  }
+
+  // --- Stats MCQ: total cards band (yellow+red)
+  if(type==="mcq_cards_total_band"){
+    const p = pickRandomProfile();
+    const c = sumProfileStat(p,"yellow_cards") + sumProfileStat(p,"red_cards");
+    const band = cardsBand(c);
+    const all = ["0","1–2","3–5","6–10","≥11"];
+    const options = shuffle([band, ...shuffle(all.filter(x=>x!==band)).slice(0,3)]);
+    return {
+      type, playerName,
+      prompt: `Tổng thẻ (vàng+đỏ, trong DB) của <b>${esc(p.name)}</b> thuộc mức nào?`,
+      hint: `Gợi ý: cộng thẻ qua các mùa trong DB.`,
+      options, correct: band,
+      explain: `Đáp án: <b>${band}</b><br/>Tổng thẻ của <b>${esc(p.name)}</b> (trong DB): <b>${c}</b>.`,
+      chips: [`Stats quiz: tổng thẻ`]
+    };
+  }
+
+  // --- Odd one out: club+season bucket
+  if(type==="odd_club_season"){
+    const buckets = new Map();
+    for(const r of POOL){
+      const k = r.club + "||" + r.season;
+      if(!buckets.has(k)) buckets.set(k, []);
+      buckets.get(k).push(r);
+    }
+    const candidates = Array.from(buckets.values()).filter(v=>v.length>=3);
+    if(!candidates.length) return makeQuestion();
+    const bucket = candidates[Math.floor(Math.random()*candidates.length)];
+    const trio = shuffle(bucket).slice(0,3);
+    const odd = shuffle(POOL.filter(r=>!(r.club===trio[0].club && r.season===trio[0].season))).slice(0,1)[0];
+    if(!odd) return makeQuestion();
+    const options = shuffle([...trio, odd]).map(x=>x.name);
+    return {
+      type, playerName,
+      prompt: `Odd one out: <b>ai KHÔNG</b> thuộc <b>${esc(trio[0].club)}</b> mùa <b>${esc(trio[0].season)}</b>?`,
+      hint: `Gợi ý: 3 người cùng CLB+mùa, 1 người lạc quẻ.`,
+      options,
+      correct: odd.name,
+      explain: `Đáp án: <b>${esc(odd.name)}</b><br/>3 người cùng CLB+mùa: <b>${trio.map(x=>esc(x.name)).join(" • ")}</b>.`,
+      chips: [`Odd one out: CLB+mùa`]
+    };
+  }
+
+  // --- Odd one out: position
+  if(type==="odd_position"){
+    const poolByPos = POSITIONS.map(pos=>[pos, POOL.filter(r=>(r.position||"")===pos)]);
+    const big = poolByPos.filter(([pos,arr])=>arr.length>=3);
+    if(!big.length) return makeQuestion();
+    const [pos, arr] = big[Math.floor(Math.random()*big.length)];
+    const trio = shuffle(arr).slice(0,3);
+    const odd = shuffle(POOL.filter(r=>(r.position||"")!==pos)).slice(0,1)[0];
+    if(!odd) return makeQuestion();
+    const options = shuffle([...trio, odd]).map(x=>x.name);
+    return {
+      type, playerName,
+      prompt: `Odd one out: <b>ai KHÔNG</b> đá vị trí <b>${esc(pos)}</b>?`,
+      hint: `Gợi ý: nhìn position (GK/DEF/MID/FWD).`,
+      options,
+      correct: odd.name,
+      explain: `Đáp án: <b>${esc(odd.name)}</b><br/>3 người vị trí ${esc(pos)}: <b>${trio.map(x=>esc(x.name)).join(" • ")}</b>.`,
+      chips: [`Odd one out: vị trí`]
+    };
+  }
+
+  // --- True/False: season+club existence
+  if(type==="tf_season_club"){
+    const p = pickRandomProfile();
+    const tf = Math.random() < 0.5;
+    if(tf){
+      const e = pickRandomEntry(p);
+      return {
+        type, playerName, tf:true,
+        prompt: `Đúng hay Sai: <b>${esc(p.name)}</b> đá cho <b>${esc(e.club)}</b> ở mùa <b>${esc(e.season)}</b>.`,
+        hint: `Gợi ý: kiểm tra đúng cặp mùa–CLB trong DB.`,
+        options: ["Đúng","Sai"],
+        correct: "Đúng",
+        explain: `Đáp án: <b>Đúng</b><br/>Theo DB có dòng: <b>${esc(p.name)}</b> — <b>${esc(e.club)}</b> — mùa <b>${esc(e.season)}</b>.`,
+        chips: [`True/False`]
+      };
+    }else{
+      const seasons = setToArray(p.seasons);
+      const clubs = setToArray(p.clubs);
+      let season = seasons[Math.floor(Math.random()*seasons.length)];
+      let club = clubs[Math.floor(Math.random()*clubs.length)];
+      if(Math.random()<0.5) club = randomClubs(club,1)[0] || club;
+      else season = randomSeasons(season,1)[0] || season;
+      if(p.entries.some(e=>e.season===season && e.club===club)) club = randomClubs(club,1)[0] || club;
+
+      return {
+        type, playerName, tf:true,
+        prompt: `Đúng hay Sai: <b>${esc(p.name)}</b> đá cho <b>${esc(club)}</b> ở mùa <b>${esc(season)}</b>.`,
+        hint: `Gợi ý: đây là 1 cặp mùa–CLB “bẫy”.`,
+        options: ["Đúng","Sai"],
+        correct: "Sai",
+        explain: `Đáp án: <b>Sai</b><br/>Các mùa/CLB của <b>${esc(p.name)}</b> trong DB: mùa <b>${seasons.map(esc).join(" • ")}</b> — CLB <b>${clubs.map(esc).join(" • ")}</b>.`,
+        chips: [`True/False`]
+      };
+    }
+  }
+
+  // --- True/False: jersey number in season
+  if(type==="tf_number_season"){
+    const p = pickRandomProfile();
+    const e = pickRandomEntry(p);
+    if(e.number===undefined || e.number===null) return makeQuestion();
+    const tf = Math.random()<0.5;
+    let shown = e.number;
+    if(!tf){
+      const nums = uniq(POOL.map(x=>x.number).filter(n=>Number.isFinite(+n))).map(n=>+n);
+      const wrong = shuffle(nums.filter(n=>n!==e.number)).slice(0,1)[0];
+      shown = (wrong!==undefined) ? wrong : (e.number+1);
+    }
+    return {
+      type, playerName, tf:true,
+      prompt: `Đúng hay Sai: Ở mùa <b>${esc(e.season)}</b>, <b>${esc(e.name)}</b> mang số <b>${shown}</b>.`,
+      hint: `Gợi ý: số áo theo mùa.`,
+      options: ["Đúng","Sai"],
+      correct: tf ? "Đúng" : "Sai",
+      explain: `Đáp án: <b>${tf ? "Đúng" : "Sai"}</b><br/>Theo DB: <b>${esc(e.name)}</b> mùa <b>${esc(e.season)}</b> số <b>${e.number}</b>.`,
+      chips: [`True/False: số áo`]
+    };
+  }
+
+  return makeQuestion();
+}
+
+
+/* ========= Render + interaction ========= *//* ========= Render + interaction ========= */
+function renderQuestion(){
+  state.lock = false;
+  $("btnNext").disabled = true;
+  $("explain").style.display="none";
+  $("explain").innerHTML="";
+  $("chips").innerHTML="";
+
+  const q = makeQuestion();
+  state.currentQ = q;
+
+  $("turnLine").innerHTML = `🎤 Lượt: <b>${esc(q.playerName)}</b> • Câu <b>${state.qIndex+1}/${state.totalRounds}</b>`;
+  const pb = $("progressBar");
+  if(pb){ pb.style.width = `${Math.round((state.qIndex)/Math.max(1,state.totalRounds)*100)}%`; }
+  setTurnMini();
+
+  $("question").innerHTML = q.prompt;
+  $("hint").innerHTML = q.hint;
+  $("chips").innerHTML = (q.chips||[]).map(c=>`<span class="chip">${esc(c)}</span>`).join("");
+
+  const ans = $("answers");
+  ans.innerHTML = "";
+
+  const opts = q.options || [];
+  const isTF = !!q.tf;
+  ans.style.gridTemplateColumns = isTF ? "1fr 1fr" : "";
+
+  opts.forEach((opt, i)=>{
+    const btn = document.createElement("button");
+    btn.className = "choice";
+    btn.setAttribute("data-choice", opt);
+    const label = isTF ? "" : String.fromCharCode(65+i) + ". ";
+    btn.innerHTML = `${label}${esc(opt)}`;
+    btn.addEventListener("click", ()=>submitAnswer(opt));
+    ans.appendChild(btn);
+  });
+
+  startTimer();
+}
+
+function lockChoices(pick){
+  const q = state.currentQ;
+  const btns = [...$("answers").querySelectorAll(".choice")];
+  btns.forEach(b=> b.disabled = true);
+
+  btns.forEach(b=>{
+    const val = b.getAttribute("data-choice");
+    if(val === q.correct) b.classList.add("correct");
+    if(val === pick && pick !== q.correct) b.classList.add("wrong");
+  });
+}
+
+function submitAnswer(pick){
+  if(state.lock) return;
+  state.lock = true;
+  stopTimer();
+
+  const q = state.currentQ;
+  lockChoices(pick);
+
+  if(pick === q.correct){
+    state.scores[q.playerName] = (state.scores[q.playerName]||0) + 1;
+    showToast(`✅ <b>${esc(q.playerName)}</b> +1 điểm!`);
+    doConfetti();
+    beep("good");
+  }else{
+    const qb = document.querySelector(".qbox"); if(qb){ qb.classList.add("shake"); }
+    setTimeout(()=>{ const qb2=document.querySelector(".qbox"); if(qb2){ qb2.classList.remove("shake"); } }, 260);
+    showToast(`❌ Sai rồi!`);
+    beep("bad");
+  }
+
+  renderScorebar();
+  $("explain").style.display="";
+  $("explain").innerHTML = q.explain + `<div class="small" style="margin-top:6px;color:var(--muted)">Bạn chọn: <b>${esc(pick)}</b></div>`;
+  $("btnNext").disabled = false;
+}
+
+function onTimeout(){
+  if(state.lock) return;
+  state.lock = true;
+  const q = state.currentQ;
+  lockChoices("__timeout__");
+  showToast("⏱️ Hết giờ!");
+  beep("bad");
+  $("explain").style.display="";
+  $("explain").innerHTML = `<span style="color:var(--warn);font-weight:1000">⏱️ Hết giờ!</span> ` + q.explain;
+  $("btnNext").disabled = false;
+}
+
+/* ========= Timer ========= */
+function startTimer(){
+  stopTimer();
+  state.timer.enabled = $("timerToggle").checked;
+  state.timer.sec = parseInt($("timerSec").value,10) || 8;
+
+  if(!state.timer.enabled){
+    $("timerPill").textContent = "⏱ —";
+    return;
+  }
+  state.timer.left = state.timer.sec;
+  $("timerPill").textContent = "⏱ " + state.timer.left;
+  state.timer.t = setInterval(()=>{
+    state.timer.left -= 1;
+    $("timerPill").textContent = "⏱ " + state.timer.left;
+    if(state.timer.left <= 0){
+      stopTimer();
+      onTimeout();
+    }
+  }, 1000);
+}
+function stopTimer(){
+  if(state.timer.t){
+    clearInterval(state.timer.t);
+    state.timer.t = null;
+  }
+}
+
+/* ========= Flow ========= */
+function startGame(){
+  if(POOL.length < 10){
+    alert("DB chưa được nạp đúng (POOL quá nhỏ). Hãy đảm bảo file vleague_db_master.js nằm cùng thư mục và được load.");
+    return;
+  }
+  if(state.players.length < 1){
+    alert("Chưa có người chơi.");
+    return;
+  }
+  state.totalRounds = +$("roundsInput").value || 10;
+  state.qIndex = 0;
+  state.turnIdx = 0;
+
+  $("setupView").style.display = "none";
+  $("gameView").style.display = "";
+  renderScorebar();
+  renderQuestion();
+}
+
+function next(){
+  stopTimer();
+  state.qIndex += 1;
+  state.turnIdx = (state.turnIdx + 1) % state.players.length;
+
+  if(state.qIndex >= state.totalRounds){
+    showFinal();
+    return;
+  }
+  renderScorebar();
+  renderQuestion();
+}
+
+function showFinal(){
+  stopTimer();
+  const sorted = state.players.slice().sort((a,b)=>(state.scores[b]||0)-(state.scores[a]||0));
+  const top = sorted.slice(0,3);
+
+  const pb = $("progressBar"); if(pb){ pb.style.width = "100%"; }
+  $("question").innerHTML = `🏁 Hết ván!`;
+  $("hint").innerHTML = `Top (điểm): <b>${esc(top.map(n=>`${n} (${state.scores[n]||0})`).join(" • "))}</b>`;
+  $("answers").innerHTML = "";
+  $("chips").innerHTML = top.map((n,i)=>`<span class="chip">#${i+1} ${esc(n)} — ${state.scores[n]||0}đ</span>`).join("");
+  $("explain").style.display="";
+  $("explain").innerHTML = `<b>Ending clip:</b> zoom vào score strip + đọc top 3 + CTA.`;
+  $("btnNext").disabled = true;
+  setTurnMini();
+}
+
+/* ========= DB paste (optional) ========= */
+function applyPastedDb(){
+  const txt = $("dbPaste").value.trim();
+  if(!txt){
+    alert("Chưa có JSON để áp dụng. (Bạn có thể bỏ qua bước này.)");
+    return;
+  }
+  try{
+    const obj = JSON.parse(txt);
+    // Accept either array of players OR {ALL_PLAYERS:[...]}
+    const arr = Array.isArray(obj) ? obj : (obj.ALL_PLAYERS || obj.all_players || obj.players);
+    if(!Array.isArray(arr)) throw new Error("JSON không đúng định dạng.");
+    setPoolFromAllPlayers(arr);
+    alert("✅ Đã áp dụng DB pasted!");
+  }catch(e){
+    alert("❌ Lỗi JSON: " + e.message);
+  }
+}
+function clearPastedDb(){
+  $("dbPaste").value = "";
+  // revert to bundled DB
+  setPoolFromAllPlayers(window.ALL_PLAYERS || []);
+  alert("✅ Đã quay về DB mặc định (vleague_db_master.js).");
+}
+
+/* ========= Events ========= */
+$("btnAdd").addEventListener("click", addPlayer);
+$("playerInput").addEventListener("keydown", (e)=>{ if(e.key==="Enter") addPlayer(); });
+
+$("btnStart").addEventListener("click", startGame);
+$("btnNext").addEventListener("click", next);
+
+$("btnSkip").addEventListener("click", ()=>{
+  if(state.lock) { next(); return; }
+  stopTimer();
+  state.lock = true;
+  $("explain").style.display="";
+  $("explain").innerHTML = `<span style="color:var(--muted);font-weight:1000">⏭️ Bỏ qua</span><br/>Đáp án: <b>${esc(state.currentQ?.correct)}</b>`;
+  $("btnNext").disabled = false;
+});
+
+$("btnReset").addEventListener("click", resetAll);
+$("btnApplyDb").addEventListener("click", applyPastedDb);
+$("btnClearDb").addEventListener("click", clearPastedDb);
+
+/* Init */
+setPoolFromAllPlayers(window.ALL_PLAYERS || []);
+resetAll();
+</script>
+</body>
+</html>
